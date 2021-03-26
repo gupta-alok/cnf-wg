@@ -133,7 +133,20 @@
 <figcaption>Figure 3: ConnectionPoint Attributes (##TODO: Convert in markdown format)</figcaption>
 </figure>
 
-### ENO Southbound-interface (SBI) Data Model ### TODO: Placeholder: Explain ENO SBI Data Model
+### ENO Southbound-interface (SBI) Data Model
+
+> Basic API Concepts
+>
+> - The API for ENO SBI consists of a single Custom Resource Definition (CRD) for the creation of Layer 2 Bridge Domains across the Fabric.
+> - The aforementioned CRD it is shown below, has a Kind of L2BridgeDomain and is a cluster wide resource (not namespace scoped).
+> - The L2BridgeDomain Custom Resources (CRs) are only for internal use and are not meant to be created by any User or Cluster Admin.
+> - The L2Service CRD that has been presented previously has one to one relationship with the L2BridgeDomain CRD.
+> - The L2BridgeDomain CRs are getting created internally by the L2Service controller when L2Service CRs are getting created 
+> - The L2BridgeDomain controller will watch for the creation of L2BridgeDomain CRs and will take action to make the appropriate changes on the Fabric.
+>
+> API Usage and Feedback
+
+
 
 ## Challenges and limitations with Kube-native approach
 
