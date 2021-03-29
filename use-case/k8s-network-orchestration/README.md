@@ -128,6 +128,7 @@
 >
 > - **Purpose:** Represents  one or several  network connection points on a set of compute hosts or worker VMs. One ConnectionPoint object can reference multiple real connection points by referring to a number of equally equipped nodes with its NodePool attribute. ConnectionPoint objects are created at cluster creation time and only referenced by clients in other API objects.
 
+
 <figure class="image">
 <img alt="ConnectionPoint Attributes" src="./ConnectionPoint Attributes.png" />
 <figcaption>Figure 3: ConnectionPoint Attributes (##TODO: Convert in markdown format)</figcaption>
@@ -141,10 +142,58 @@
 > - The aforementioned CRD it is shown below, has a Kind of L2BridgeDomain and is a cluster wide resource (not namespace scoped).
 > - The L2BridgeDomain Custom Resources (CRs) are only for internal use and are not meant to be created by any User or Cluster Admin.
 > - The L2Service CRD that has been presented previously has one to one relationship with the L2BridgeDomain CRD.
-> - The L2BridgeDomain CRs are getting created internally by the L2Service controller when L2Service CRs are getting created 
-> - The L2BridgeDomain controller will watch for the creation of L2BridgeDomain CRs and will take action to make the appropriate changes on the Fabric.
+> - The L2BridgeDomain CRs are getting created internally by the ENO core controller when L2Service CRs are getting created 
+> - The Fabric plugin controller will watch for the creation of L2BridgeDomain CRs and will take action to make the appropriate changes on the Fabric.
 >
 > API Usage and Feedback
+>
+> - When an L2Service CR is getting created the ENO core controller will watch for those events and will create the corresponding L2BridgeDomain CR. 
+>   - Until some L2ServiceAttachment CR consumes the created L2Service CR the L2BridgeDomain CR will include no Connection Points (CPs) and that means that no vlan will be opened on the fabric.
+> - When a L2ServiceAttachment CR gets created the ENO core controller will watch for those kind of events and will update the L2BridgeDomain CRs with the appropriate CPs. 
+> - In continuation to that Fabric plugin controller will watch for the events around L2BridgeDomain CRs and will open the corresponding Vlans to the appropriate trunks on the Fabric.
+
+> **L2BridgeDomain API Object**
+>
+> - **Purpose:** Represents a single L2 Bridge Domain. During the creation of such an object the corresponding Vlan will be opened to the corresponding switch ports on the fabric that are represented by the list of Connection Points in the L2BridgeDomain CRD.
+> - **Attributes:**
+>   - *Vlan:* the Vlan ID of the L2 network. 
+>   - *ConnectionPoints:* list of ConnectionPoints names which will be translated internally in a group of Fabric trunk ports where the corresponding Vlan should be opened.
+
+<figure class="image">
+<img alt="L2BridgeDomain" src="./L2BridgeDomain.jpg" />
+<figcaption>Figure 4: L2BridgeDomain CRD</figcaption>
+</figure>
+
+## ENO components overview
+
+> Figure 5 depicts all the different components of ENO framework and how those components interact during the creation of a single L2ServiceAttachment CR.
+>
+> 1. Initially a L2ServiceAttachment object is getting created.
+> 2. The L2ServiceAttachment controller will watch for those kind of events and will create the corresponding NAD and also will wait for the associated VLANs to be opened on the fabric.
+> 3. In parallel the L2Service controller will also watch for the same L2ServiceAttachment events. When this happens the controller will issue L2BridgeDomain update events to open the corresponding VLANs on the associated Fabric ports.
+> 4. The L2BridgeDomain controller will watch for the L2BridgeDomain update events and will open the corresponding VLANs on the appropriate fabric ports.
+> 5. When the VLANs has been opened on the fabric ports then the creation of the L2ServiceAttachment object is considered successful and the status will change to a state equal to "Ready".
+
+<figure class="image">
+<img alt="Eno Components Overview" src="./EnoComponentsOverview.jpg" />
+<figcaption>Figure 5: ENO Components Overview</figcaption>
+</figure>
+
+## ENO fabric plugin
+
+> The below image shows a detailed overview of the fabric plugin component. Each fabric plugin in ENO needs one or more configuration files where the NodePool information (interface names, connection points, etc) and the Fabric information (Node names, interface names and switch port IDs) will be described. Those configuration files are important because through them ENO fabric plugin generates the desired state and use that to compare with actual state of the fabric.
+> In figure 6 we can see a basic operation of the fabric plugin.
+> 1. When a L2BridgeDomain event arrives the L2BridgeDomain controller kicks in and starts processing the event
+> 2. The controller will generate a desired state with the help of poolConf and fabricConf files. That desired state in this case is a group of ports that the corresponding Vlan should be opened by the end of controller operation.
+> 3. In continuation to that the L2BridgeDomain controller will also fetch the actual state from the fabric. That consists of a group of ports where the corresponding Vlan is already open on the fabric.
+> 4. The L2BridgeDomain controller then compares the desired state with the actual state for that specific vlan and if those states differ then configures the fabric ports accordingly.
+
+<figure class="image">
+<img alt="Eno Fabric Plugin" src="./EnoFabricPlugin.jpg" />
+<figcaption>Figure 6: ENO Fabric Plugin</figcaption>
+</figure>
+
+
 
 
 
